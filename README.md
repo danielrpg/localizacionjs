@@ -1,5 +1,6 @@
-<h1>Proyecto Integrado</h1>
-<h3>Desarrollo de Aplicaciones Web</h3>
+<h2>Proyecto Integrado</h2>
+<h2>Desarrollo de Aplicaciones Web</h2>
+<hr/>
 <h3>Aplicación Web en Tiempo Real</h3>
 <h3>Seguimiento y Localización</h3>
 
