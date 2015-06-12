@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Localizacion JS</title>
+        <script src="js/vendor/alertify.js"></script>
+        <link rel="stylesheet" href="css/marketing.css">      
+        <link rel="shortcut icon" href="../img/favicon.png">    
+    </head>
+
+    <body>
+    <header class="header">
+        <a class="pure-menu-heading" href="inicio" id="logoInicio">
+            <img src="img/logo.png" id="logo" alt="logo" /><span id="titulo">Localizaci&oacute;nJS </span>
+        </a>
+        <div id ="enlaces">
+            <a href="inicio" class="pure-menu-heading pure-menu-link ">INICIO</a>
+            <a href="dispositivo" class="pure-menu-heading pure-menu-link dosLineas">VINCULAR <br class="salto"/>DISPOSITIVOS</a>  
+            <a href="admin" class="pure-menu-heading pure-menu-link dosLineas">PANEL DE <br class="salto"/>ADMINISTRACI&Oacute;N</a>  
+        </div>
+    </header>
+		
+      	
+		<div class="content">
+            <div class="l-box-lrg pure-u-1 pure-u-md-2-5">
+                <form class="pure-form pure-form-stacked" method="post" action="doRegistro">
+                    <fieldset>
+                        <legend>Registrate</legend>
+
+                        <input type="email" name="correo" id="correo" placeholder="Email">
+                        <input type="email" name="correo1" id="correo1" placeholder="Repite Email">
+                        <input type="password" name="clave" id="clave" placeholder="Password">
+                        <input type="password" name="clave1" id="clave1" placeholder="Repite Password">
+
+                        <button type="submit" id="registrar" class="pure-button pure-button-primary">Registrate</button>                        
+                        <button type="reset" class="pure-button pure-button-primary">Borrar</button>
+                    </fieldset>
+                </form>
+                <a class="pure-button pure-button-primary" href="admin">Volver</a>
+            </div>
+		</div>
+
+        <footer class="footer l-box is-center">
+            <div class="contenido">
+                <div class="left">
+                    <a href="https://github.com/salvacam/localizacionjs" target="_blank" id="git">
+                        <span><i>C&oacutedigo</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.apk" id="apk">
+                        <span><i>App Android</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.xap" id="xap">
+                        <span><i>App Windows Phone</i></span>
+                    </a>
+                </div>
+                <div class="right">
+                    <a href="http://salvacam.x10.mx/pi/Doc_.pdf" target="_blank" id="pdf">
+                        <span><i>Documentaci&oacute;n</i></span>
+                    </a>
+                    <a href="https://prezi.com/0e2nqty7q8o3/aplicacion-web-en-tiempo-real/" target="_blank" id="prezi">
+                        <span><i>Presentaci&oacute;n</i></span>
+                    </a>
+                </div>
+                <div class="center">
+                    Proyecto Integrado Desarrollo de Aplicaciones Web 2015
+                    <br/>Aplicación Web en Tiempo Real
+                    <br/>Salvador Camacho Soto 
+                </div>
+            </div>
+        </footer>
+
+    </body>
+    <script>
+        /*
+        validar los datos con javascript        
+        */
+        var registrar = document.getElementById("registrar");
+        registrar.addEventListener("click", function(evento) {
+            var msg = "";
+            var correo = document.getElementById("correo").value;        
+            var correo1 = document.getElementById("correo1").value;        
+            var expregMail = new RegExp("^[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,4}$");
+            if (!expregMail.test(correo)) {
+                msg += " * El formato de Email no es válido.<br/>";
+            }
+            if(correo != correo1){
+                msg += " * No coinciden los email.<br/>";
+            }
+            var clave = document.getElementById("clave").value;        
+            var clave1 = document.getElementById("clave1").value;        
+            var expregClave =/^(?=.*\d)(?=.*[A-z]).{4,8}$/;       
+            if (!expregClave.test(clave)) {
+                msg += " * Clave de 4 a 8 caracteres un digito y una letra al menos.<br/>";
+            }
+            if(clave != clave1){
+                msg += " * No coinciden las claves.<br/>";
+            }
+
+            if(msg !== ""){
+                evento.preventDefault();                
+                alertify.error(msg);
+            }
+        });
+
+    </script>
+</html>

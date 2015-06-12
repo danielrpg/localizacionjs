@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localizacion JS</title>
+    <link rel="stylesheet" href="../css/vendor/leaflet.css" />
+    <link rel="stylesheet" href="../css/vendor/Control.MiniMap.min.css" />
+    <link rel="stylesheet" href="../css/marketing.css" />
+    <link rel="shortcut icon" href="../img/favicon.png"> 
+</head>
+
+<body>
+    <header class="header">
+        <a class="pure-menu-heading" href="inicio" id="logoInicio">
+            <img src="img/logo.png" id="logo" alt="logo" /><span id="titulo">Localizaci&oacute;nJS </span>
+        </a>
+        <div id ="enlaces">
+            <a href="inicio" class="pure-menu-heading pure-menu-link ">INICIO</a>
+            <a href="dispositivo" class="pure-menu-heading pure-menu-link dosLineas">VINCULAR <br class="salto"/>DISPOSITIVOS</a>  
+            <a href="admin" class="pure-menu-heading pure-menu-link dosLineas">PANEL DE <br class="salto"/>ADMINISTRACI&Oacute;N</a>  
+        </div>
+    </header>
+    <div class="content" id="main">
+        <a class="pure-button pure-button-primary" href="admin">Volver &#10550;</a>
+        <br/>
+        <div id="name">
+            <br/>Nombre: <b>{Nombre}</b>
+            <br/>
+            <br/>
+
+            <div id="fechas">
+                <label for="anyo">Año</label>
+                <div class="styled-select ver">
+                    <select name="anyo" id="anyo">
+
+                    </select>             
+                </div>
+
+                <label for="mes">Mes</label>
+                <div class="styled-select ver">
+                    <select name="mes" id="mes">
+
+                    </select>             
+                </div>
+
+                <label for="dia">Dia</label>
+                <div class="styled-select ver">
+                    <select name="dia" id="dia">
+
+                    </select> 
+                </div>
+
+                <a class="pure-button pure-button-primary" id="ver" href="#">Ver</a>
+            </div>
+        </div>
+        <br/>
+        <div id="map"></div>
+        <br/>
+        <br/>
+    </div>
+        <footer class="footer l-box is-center">
+            <div class="contenido">
+                <div class="left">
+                    <a href="https://github.com/salvacam/localizacionjs" target="_blank" id="git">
+                        <span><i>C&oacutedigo</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.apk" id="apk">
+                        <span><i>App Android</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.xap" id="xap">
+                        <span><i>App Windows Phone</i></span>
+                    </a>
+                </div>
+                <div class="right">
+                    <a href="http://salvacam.x10.mx/pi/Doc_.pdf" target="_blank" id="pdf">
+                        <span><i>Documentaci&oacute;n</i></span>
+                    </a>
+                    <a href="https://prezi.com/0e2nqty7q8o3/aplicacion-web-en-tiempo-real/" target="_blank" id="prezi">
+                        <span><i>Presentaci&oacute;n</i></span>
+                    </a>
+                </div>
+                <div class="center">
+                    Proyecto Integrado Desarrollo de Aplicaciones Web 2015
+                    <br/>Aplicación Web en Tiempo Real
+                    <br/>Salvador Camacho Soto 
+                </div>
+            </div>
+        </footer>
+</body>
+<script src="../js/vendor/alertify.js"></script>
+<script src="../js/vendor/zepto.min.js"></script>
+<script src="../js/vendor/leaflet.js"></script>
+<script src="../js/vendor/Control.MiniMap.min.js"></script>
+<script type="text/javascript" src="../js/vendor/AnimatedMarker.js"></script>
+<script src="http://localizacionjs.herokuapp.com/socket.io/socket.io.js"></script>
+<!--
+<script type="text/javascript" src="http://localhost:8888/socket.io/socket.io.js"></script>
+-->
+<script>
+    var arrayPosicion = {Contenido};
+    var id = {ValorId};
+</script>
+<script src="../js/ver.js"></script>
+</html>

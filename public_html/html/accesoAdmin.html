@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localizacion JS</title>
+    <script src="../js/vendor/alertify.js"></script>
+    <link rel="stylesheet" href="../css/marketing.css">  
+    <link rel="shortcut icon" href="../img/favicon.png">    
+</head>
+
+<body>
+    <header class="header">
+        <a class="pure-menu-heading" href="inicio" id="logoInicio">
+            <img src="img/logo.png" id="logo" alt="logo" /><span id="titulo">Localizaci&oacute;nJS </span>
+        </a>
+        <div id ="enlaces">
+            <a href="inicio" class="pure-menu-heading pure-menu-link ">INICIO</a>
+            <a href="dispositivo" class="pure-menu-heading pure-menu-link dosLineas">VINCULAR <br class="salto"/>DISPOSITIVOS</a>  
+            <a href="admin" class="pure-menu-heading pure-menu-link dosLineas">PANEL DE <br class="salto"/>ADMINISTRACI&Oacute;N</a>  
+        </div>
+    </header>
+    <div class="content">
+        <button class="pure-button" id="logout">Salir</button>
+        <br/>
+        <br/>
+        <table class="pure-table">
+            <thead>
+                <tr>
+                    <th colspan="4">Dispositivos</th>
+                    <!--
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Vinculado</th>
+                    <th>DesVincular</th>
+                    <th>Ver / Ocultar</th>
+                -->
+                </tr>
+            </thead>
+            <tbody id="contenido">
+                {Aviso}
+            </tbody>
+        </table>
+        <br/>
+        <div id="paginacion">
+            {Paginacion}
+        </div>
+    </div>
+    <footer class="footer l-box is-center">
+        <div class="contenido">
+            <div class="left">
+                <a href="https://github.com/salvacam/localizacionjs" target="_blank" id="git">
+                    <span><i>C&oacutedigo</i></span>
+                </a>
+                <a href="http://salvacam.x10.mx/pi/app.apk" id="apk">
+                    <span><i>App Android</i></span>
+                </a>
+                <a href="http://salvacam.x10.mx/pi/app.xap" id="xap">
+                    <span><i>App Windows Phone</i></span>
+                </a>
+            </div>
+            <div class="right">
+                <a href="http://salvacam.x10.mx/pi/Doc_.pdf" target="_blank" id="pdf">
+                    <span><i>Documentaci&oacute;n</i></span>
+                </a>
+                <a href="https://prezi.com/0e2nqty7q8o3/aplicacion-web-en-tiempo-real/" target="_blank" id="prezi">
+                    <span><i>Presentaci&oacute;n</i></span>
+                </a>
+            </div>
+            <div class="center">
+                Proyecto Integrado Desarrollo de Aplicaciones Web 2015
+                <br/>Aplicación Web en Tiempo Real
+                <br/>Salvador Camacho Soto 
+            </div>
+        </div>
+    </footer>
+</body>
+<script src="http://localizacionjs.herokuapp.com/socket.io/socket.io.js"></script>
+<!--
+<script src="http://localhost:8888/socket.io/socket.io.js"></script>
+-->
+<script>
+var logout = document.getElementById("logout");
+logout.addEventListener("click", function(event) {
+    event.preventDefault();
+    alertify.confirm("¿Quieres salir?", function(e) {
+        if (e) {
+            sessionStorage.clear();
+            window.location = "index";
+        }
+    });
+});
+
+var correo = '{Correo}';
+var id = '{Id}';
+
+
+function llamadaAjax(pagina) {
+    var ajax1;
+    if (window.XMLHttpRequest) {
+        ajax1 = new XMLHttpRequest();
+    }
+    ajax1.open("GET",
+        //"http://localhost:8888/ajaxRefrescar?correo=" + correo + "&sup=" + id + "&pag=" + pagina,
+        "http://localizacionjs.herokuapp.com/ajaxRefrescar?correo=" + correo + "&sup=" + id + "&pag=" + pagina,
+        true);
+    ajax1.onreadystatechange = function() {
+        if (ajax1.readyState == 4) {
+            if (ajax1.status == 200) {
+                var ojsonRef = JSON.parse(ajax1.responseText);
+                if (ojsonRef.tabla != "") {
+                    document.getElementById("contenido").innerHTML = ojsonRef.contenido;
+                    document.getElementById("paginacion").innerHTML = ojsonRef.enlacesPag;
+                    eventos();
+                }
+            }
+        }
+    };
+    ajax1.send();
+}
+
+function eventos() {
+    var ArrayDesvincular = document.getElementsByClassName("desvincular");
+    for (var i = 0; i < ArrayDesvincular.length; i++) {
+        ArrayDesvincular[i].addEventListener("click", function(evt) {
+            evt.preventDefault();
+            var id = evt.target.getAttribute("data-id");
+            if (id == undefined) {
+                id = evt.target.parentNode.getAttribute("data-id");
+            };
+            alertify.confirm("¿Quieres desvincular el dispositivo? <br/>Dejara de enviar su posici&oacute;n", function(e) {
+                if (e) {
+                    //mandar por ajax la orden de desvincular
+                    var ajax;
+                    if (window.XMLHttpRequest) {
+                        ajax = new XMLHttpRequest();
+                    }
+                    //ajax.open("GET", "http://localhost:8888/ajaxDesvincular?disp=" + id, true);
+                    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + id, true);
+                    ajax.onreadystatechange = function() {
+                        if (ajax.readyState == 4 && ajax.status == 200) {
+                            var pag = 0;
+                            if (window.location.search != "") {
+                                var str = window.location.search;
+                                if (str.indexOf("&pagina=") != -1) {
+                                    pag = str.substring((str.indexOf("&pagina=")) + 8);
+                                }
+                            }
+                            llamadaAjax(pag);
+                        }
+                    };
+                    ajax.send();
+                }
+            });
+        });
+    }
+
+    var ArrayBorrar = document.getElementsByClassName("borrar");
+    for (var i = 0; i < ArrayBorrar.length; i++) {
+        ArrayBorrar[i].addEventListener("click", function(evt) {
+            evt.preventDefault();
+            var id = evt.target.getAttribute("data-id");
+            var nombre = evt.target.getAttribute("data-delete");
+            if (id == undefined) {
+                id = evt.target.parentNode.getAttribute("data-id");
+                nombre = evt.target.parentNode.getAttribute("data-delete");
+            };
+            alertify.prompt("Esta a punto de borrar el dispositivo <b>" + nombre + "</b> <br/>se eliminaran todos los datos del dispositivo <br/> Si quiere elminar el dispositivo introduce su nombre", function(e, str) {
+                if (e) {
+                    if (str == nombre) {
+                        var ajax;
+                        if (window.XMLHttpRequest) {
+                            ajax = new XMLHttpRequest();
+                        }
+                        //ajax.open("GET", "http://localhost:8888/ajaxBorrar?disp=" + id, true);
+                        ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxBorrar?disp=" + id, true);
+                        ajax.onreadystatechange = function() {
+                            if (ajax.readyState == 4 && ajax.status == 200) {
+                                var ojsonBorrar = JSON.parse(ajax.responseText);
+                                if (ojsonBorrar.r == 0) {
+                                    alertify.alert("Se ha borrado el dispositivo");
+                                    var pag = 0;
+                                    if (window.location.search != "") {
+                                        var str = window.location.search;
+                                        if (str.indexOf("&pagina=") != -1) {
+                                            pag = str.substring((str.indexOf("&pagina=")) + 8);
+                                        }
+                                    }
+                                    llamadaAjax(pag);
+                                } else {
+                                    alertify.alert("No se ha podido borrar el dispositivo");
+                                }
+                            }
+                        };
+                        ajax.send();
+                    } else {
+                        alertify.alert("El nombre introducido no es correcto,<br/> no se ha borrado el dispositivo");
+                    }
+                } else {
+                    alertify.alert("Ha cancelado la acci&oacute;n,<br/> no se ha borrado el dispositivo");
+                }
+            }, "");
+        }, true);
+    }
+
+    var ArrayVer = document.getElementsByClassName("ver");
+    for (var i = 0; i < ArrayVer.length; i++) {
+        ArrayVer[i].addEventListener("click", function(evt) {
+            evt.preventDefault();
+            var id = evt.target.getAttribute("data-id");
+            if (id == undefined) {
+                id = evt.target.parentNode.getAttribute("data-id");
+            };
+            if (window.location.search != "") {
+                window.location = "ver" + window.location.search + "&disp=" + id;
+            } else {
+                var direccion = document.getElementById("reload").getAttribute("data-reload");
+                direccion = direccion.replace("supervisor", "ver");
+                direccion = direccion.substring(0, direccion.length - 1);
+                direccion = direccion.replace("pagina", "disp");
+                direccion += id;
+                window.location = direccion;
+            }
+        });
+    }
+}
+
+eventos();
+
+var socket = io.connect('http://localizacionjs.herokuapp.com/');
+//var socket = io.connect('http://localhost:8888/');
+
+socket.on("{ValorSupervisor}", function(data) {
+    var pag = 0;
+    if (window.location.search != "") {
+        var str = window.location.search;
+        if (str.indexOf("&pagina=") != -1) {
+            pag = str.substring((str.indexOf("&pagina=")) + 8);
+        }
+    }
+    llamadaAjax(pag);
+});
+
+
+
+{Scripts}
+</script>
+
+</html>

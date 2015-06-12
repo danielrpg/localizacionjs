@@ -1,0 +1,165 @@
+.content.index {
+	width: 100%;
+	max-width: 100%;
+	padding: 0;
+}
+
+#imagen {
+	width: 100%;
+	background: url(../img/inicio.png) no-repeat center center; 
+  	-webkit-background-size: cover;
+  	-moz-background-size: cover;
+  	-o-background-size: cover;
+  	background-size: cover;
+}
+#descripcion {
+	margin: 0 auto;
+	width: 100%;
+	background-color: #EB5B25;
+}
+
+#containerDesc {
+	width: 90%;
+	max-width: 1800px;
+	margin: 0 auto;
+	color: #000;
+	padding-top: 10px;
+}
+
+#columnas {
+    -webkit-column-count: 3;
+    -moz-column-count: 3;
+    column-count: 3;
+    -webkit-column-gap: 2em;
+    -moz-column-gap: 2em;
+    column-gap: 2em;
+}
+
+#instrucciones {
+	margin: 0 auto;
+	width: 100%;
+	background-color: #089DB7;
+}
+
+#containerInst {
+	width: 90%;
+	max-width: 1800px;
+	margin: 0 auto;
+	color: #000;
+	padding-top: 10px;
+
+	height: 450px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+#circulos {
+	margin: 0 auto;
+	margin-top: 50px;
+	text-align: center;
+}
+
+#circulos a {
+	text-decoration: none;
+	color: #000;
+}
+
+#circulos a:hover .titulo{
+	color: #7a7a7a;
+}
+
+#circulo1,
+#circulo2,
+#circulo3 {
+	display: inline-block;
+	width: 200px;
+	height: 200px;
+	border-radius: 50%;
+	text-align: center;
+  	-webkit-background-size: cover;
+  	-moz-background-size: cover;
+  	-o-background-size: cover;
+  	background-size: cover;
+}
+
+#circulo1 {
+	background: url(../img/registrate.png) no-repeat center center; 
+	float: left;
+}
+
+#circulo2 {
+	background: url(../img/vincula.png) no-repeat center center; 
+	float: none;
+}
+
+#circulo3 {
+	background: url(../img/administra.png) no-repeat center center; 
+	float: right;
+}
+
+#circulos a span.titulo{ 
+	display: block;
+	clear: both;
+	margin-top: -25px;
+	font-size: 1.45em;	
+    font-family: 'TektonPro';
+}
+
+#circulos a span.cuerpo{ 
+	display: block;
+	clear: both;
+	margin-top: 200px;
+	font-size: 1em;
+}
+
+#circulos a span.cuerpo.dosLineas{ 
+	margin-top: 175px;
+}
+
+@media (max-width: 1200px) {
+    #columnas {
+        -webkit-column-count: 2;
+        -moz-column-count: 2;
+        column-count: 2;
+    }
+}
+
+
+@media (max-width: 767px) {
+	#containerInst {
+		height: 1050px;
+	}
+
+	#circulos {
+		margin: 0 auto;
+		margin-top: 50px;
+		text-align: center;
+	}
+
+	#circulo1,
+	#circulo2,
+	#circulo3 {
+		clear: both;
+		float: none;
+		margin-left: 100px;
+		margin-right: 100px;
+		margin-bottom: 125px;
+	}
+}
+
+@media (max-width: 700px) {
+    #columnas {
+        -webkit-column-count: 1;
+        -moz-column-count: 1;
+        column-count: 1;
+    }
+}
+
+@media (max-width: 450px) {
+	#circulo1,
+	#circulo2,
+	#circulo3 {
+		margin-left: 50px;
+		margin-right: 50px;
+	}
+}

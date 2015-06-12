@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Localizacion JS</title>
+        <script src="./js/vendor/alertify.js"></script>
+        <link rel="stylesheet" href="./css/marketing.css">     
+        <link rel="shortcut icon" href="../img/favicon.png">     
+    </head>
+
+    <body>
+    <header class="header">
+        <a class="pure-menu-heading" href="inicio" id="logoInicio">
+            <img src="img/logo.png" id="logo" alt="logo" /><span id="titulo">Localizaci&oacute;nJS </span>
+        </a>
+        <div id ="enlaces">
+            <a href="inicio" class="pure-menu-heading pure-menu-link ">INICIO</a>
+            <a href="dispositivo" class="pure-menu-heading pure-menu-link dosLineas">VINCULAR <br class="salto"/>DISPOSITIVOS</a>  
+            <a href="admin" class="pure-menu-heading pure-menu-link dosLineas">PANEL DE <br class="salto"/>ADMINISTRACI&Oacute;N</a>  
+        </div>
+    </header>
+		
+      	
+		<div class="content">
+            <div class="l-box-lrg pure-u-1 pure-u-md-2-5">
+                <form class="pure-form pure-form-stacked" method="post" action="doIniciar">
+                    <fieldset>
+                        <legend>Comienza a usarlo</legend>
+
+                        <input type="email" name="correo" id="correo" placeholder="Email" autocomplete="off" />
+                        <input type="text" name="dispositivo" id="dispositivo" placeholder="Dispositivo" autocomplete="off" />
+
+                        <label for="tiempo">Envio de posicion cada</label>
+                        <div class="styled-select extra">
+                            <select name="tiempo" id="tiempo">
+                                <option value="10000">10 segundos</option>
+                                <option value="30000">30 segundos</option>
+                                <option value="120000">2 minutos</option>
+                                <option value="300000">5 minutos</option>
+                                <option value="600000">10 minutos</option>
+                                <option value="1800000">30 minutos</option>
+                            </select> 
+                        </div>
+                        <br/>
+                        <br/>
+                        <button type="submit" id="acceder" class="pure-button pure-button-primary">Comienza</button>
+                    </fieldset>
+                </form>
+            </div>
+		</div>
+
+        <footer class="footer l-box is-center">
+            <div class="contenido">
+                <div class="left">
+                    <a href="https://github.com/salvacam/localizacionjs" target="_blank" id="git">
+                        <span><i>C&oacutedigo</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.apk" id="apk">
+                        <span><i>App Android</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.xap" id="xap">
+                        <span><i>App Windows Phone</i></span>
+                    </a>
+                </div>
+                <div class="right">
+                    <a href="http://salvacam.x10.mx/pi/Doc_.pdf" target="_blank" id="pdf">
+                        <span><i>Documentaci&oacute;n</i></span>
+                    </a>
+                    <a href="https://prezi.com/0e2nqty7q8o3/aplicacion-web-en-tiempo-real/" target="_blank" id="prezi">
+                        <span><i>Presentaci&oacute;n</i></span>
+                    </a>
+                </div>
+                <div class="center">
+                    Proyecto Integrado Desarrollo de Aplicaciones Web 2015
+                    <br/>Aplicación Web en Tiempo Real
+                    <br/>Salvador Camacho Soto 
+                </div>
+            </div>
+        </footer>
+
+    </body>
+    <script>
+        var acceder = document.getElementById("acceder");
+        acceder.addEventListener("click", function(evento) {
+            var msg = "";
+            var correo = document.getElementById("correo").value;        
+            var expregMail = new RegExp("^[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,4}$");
+            if (!expregMail.test(correo)) {
+                msg += " * El formato de Email no es válido.<br/>";
+            }
+            var dispositivo = document.getElementById("dispositivo").value;          
+            if (dispositivo.length < 1 || dispositivo.length > 10) {
+                msg += " * El nombre del dispositivo tiene que tener entre 1 y 10 caracteres.<br/>";
+            }
+            if(msg !== ""){
+                evento.preventDefault();                
+                alertify.error(msg);
+            } 
+        });
+    </script>
+</html>

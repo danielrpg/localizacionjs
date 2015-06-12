@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localizacion JS</title>
+    <script src="../js/vendor/alertify.js"></script>
+    <link rel="stylesheet" href="../css/marketing.css">
+    <link rel="shortcut icon" href="../img/favicon.png"> 
+</head>
+
+<body>
+    <header class="header">
+        <a class="pure-menu-heading" href="inicio" id="logoInicio">
+            <img src="img/logo.png" id="logo" alt="logo" /><span id="titulo">Localizaci&oacute;nJS </span>
+        </a>
+        <div id ="enlaces">
+            <a href="inicio" class="pure-menu-heading pure-menu-link ">INICIO</a>
+            <a href="dispositivo" class="pure-menu-heading pure-menu-link dosLineas">VINCULAR <br class="salto"/>DISPOSITIVOS</a>  
+            <a href="admin" class="pure-menu-heading pure-menu-link dosLineas">PANEL DE <br class="salto"/>ADMINISTRACI&Oacute;N</a>  
+        </div>
+    </header>
+    <div class="content">
+        <div class="l-box-lrg pure-u-1 pure-u-md-2-5">
+            <form class="pure-form pure-form-stacked" method="post" action="fin" id="form">
+                <input type='text' name='dispositivo' id='dispositivo' value='{ValorDisp}' readonly/>
+                <input type='text' name='supervisor' id='supervisor' value='{ValorSup}' readonly/>
+                <input type='hidden' name='idDispositivo' id='idDispositivo' value='{ValorIdDisp}' />
+                <input type='hidden' name='idSupervisor' id='idSupervisor' value='{ValorIdSup}' />
+                <button type="submit" id="salir" class="pure-button pure-button-primary">Salir</button>
+            </form>
+        </div>
+    </div>
+    <div>
+    </div>
+        <footer class="footer l-box is-center">
+            <div class="contenido">
+                <div class="left">
+                    <a href="https://github.com/salvacam/localizacionjs" target="_blank" id="git">
+                        <span><i>C&oacutedigo</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.apk" id="apk">
+                        <span><i>App Android</i></span>
+                    </a>
+                    <a href="http://salvacam.x10.mx/pi/app.xap" id="xap">
+                        <span><i>App Windows Phone</i></span>
+                    </a>
+                </div>
+                <div class="right">
+                    <a href="http://salvacam.x10.mx/pi/Doc_.pdf" target="_blank" id="pdf">
+                        <span><i>Documentaci&oacute;n</i></span>
+                    </a>
+                    <a href="https://prezi.com/0e2nqty7q8o3/aplicacion-web-en-tiempo-real/" target="_blank" id="prezi">
+                        <span><i>Presentaci&oacute;n</i></span>
+                    </a>
+                </div>
+                <div class="center">
+                    Proyecto Integrado Desarrollo de Aplicaciones Web 2015
+                    <br/>Aplicación Web en Tiempo Real
+                    <br/>Salvador Camacho Soto 
+                </div>
+            </div>
+        </footer>
+</body>
+<script>
+var tiempo = parseInt({ValorTiempo});
+console.log(tiempo);
+
+function obtenerFechaHora() {
+    var fecha = new Date();
+
+    function menor10(valor) {
+        return (valor < 10 ? ("0" + valor) : valor);
+    };
+
+    var salida = fecha.getFullYear() + "-" + menor10(fecha.getMonth() + 1) + "-" + menor10(fecha.getDate()) + "T" +
+        menor10(fecha.getHours()) + ":" + menor10(fecha.getMinutes()) + ":" + menor10(fecha.getSeconds());
+    return salida;
+}
+
+
+function validarFecha(valor) {
+    var fecha = valor.substring(0, valor.lastIndexOf("T"));
+
+    var fechaf = fecha.split("-");
+    var anof = parseInt(fechaf[0]);
+    var mesf = parseInt(fechaf[1]) - 1;
+    var diaf = parseInt(fechaf[2]);
+
+    var hora = valor.substring(valor.lastIndexOf("T") + 1, valor.length);
+
+    var horaf = hora.split(":");
+    var horasf = parseInt(horaf[0]);
+    var minutosf = parseInt(horaf[1]);
+    var segundosf = parseInt(horaf[2]);
+
+    var newValor = new Date(anof, mesf, diaf, horasf, minutosf, segundosf);
+
+    if (newValor.getFullYear() != anof || newValor.getMonth() != mesf || newValor.getDate() != diaf || newValor.getHours() != horasf || newValor.getMinutes() != minutosf || newValor.getSeconds() != segundosf) {
+        return false;
+    }
+    return true;
+}
+
+function visualizarSituacion(posicion) {
+    var fechaHora = obtenerFechaHora();
+
+    //comprobar valores
+    var valido = true;
+    if (isNaN(document.getElementById("idDispositivo").value)) {
+        valido = false;
+    }
+    if (isNaN(posicion.coords.latitude)) {
+        valido = false;
+    }
+    if (isNaN(posicion.coords.longitude)) {
+        valido = false;
+    }
+    if (!validarFecha(fechaHora)) {
+        valido = false;
+    }
+
+    if (valido) {
+        var ajax;
+        if (window.XMLHttpRequest) {
+            ajax = new XMLHttpRequest();
+        }
+        ajax.open("GET",
+            //"http://localhost:8888/ajaxSend?disp=" + document.getElementById("idDispositivo").value + "&lat=" + posicion.coords.latitude + "&long=" + posicion.coords.longitude + "&date=" + fechaHora,
+            "http://localizacionjs.herokuapp.com/ajaxSend?disp=" + document.getElementById("idDispositivo").value + "&lat=" + posicion.coords.latitude + "&long=" + posicion.coords.longitude + "&date=" + fechaHora,
+            true);
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState == 4) {
+                if (ajax.status == 200) {
+                    var ojsonBorrar = JSON.parse(ajax.responseText);
+                    if (ojsonBorrar.r == 0) {
+                        var datos = {
+                            id: document.getElementById("idDispositivo").value,
+                            fechaHora: fechaHora,
+                            latitud: posicion.coords.latitude,
+                            longitud: posicion.coords.longitude
+                        }
+                    }
+                    if (ojsonBorrar.r == 1) {
+                        clearInterval(temp);
+                        alertify.confirmA("Dispositivo desvinculado por el supervisor", function(e) {
+                            window.onbeforeunload = function() {};
+                            window.location = "index";
+                        });
+                    }
+                    if (ojsonBorrar.r == 2) {
+                        clearInterval(temp);
+                        alertify.confirmA("No existe el dispositivo", function(e) {
+                            window.onbeforeunload = function() {};
+                            window.location = "index";
+                        });
+                    }
+                }
+            }
+        };
+        ajax.send();
+    }
+
+}
+
+var temp;
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(visualizarSituacion, null);
+    temp = setInterval(function() {
+        navigator.geolocation.getCurrentPosition(visualizarSituacion, null);
+    }, tiempo);
+
+} else {
+    alertify.error("No hay soporte de geolocalización");
+}
+
+window.onbeforeunload = function exitAlert() {
+    var textillo = "Dejaras de enviar tu posicion.";    
+    return textillo;
+    var ajax;
+    if (window.XMLHttpRequest) {
+        ajax = new XMLHttpRequest();
+    }
+    //ajax.open("GET", "http://localhost:8888/ajaxDesvincular?disp=" + id, true);
+    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + id, true);
+    ajax.send();
+}
+</script>
+
+</html>
