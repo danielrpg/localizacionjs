@@ -1,6 +1,0 @@
-{"k":"0000000078","o":"0000000123","v":"001"}
-{"_id":2,"_uid":2,"_dt":1430147773992,"_s":"e2c7ed9a66eb3f9d0e0ec38a685934bd"}
-{"correo":"salvacams@gmail.com","clave":"2c12471b9239ff8697b41621cc0be83e4d55c0f8","activo":1,"_id":{"$wrap":"$oid","v":2}}
-{"k":"0000000078","o":"0000000125","v":"001"}
-{"_id":2,"_uid":2,"_dt":1430148059063,"_s":"6557b47e9987c076ca2c5223f47c5523"}
-{"correo":"salvacams@gmail.com","clave":"2c12471b9239ff8697b41621cc0be83e4d55c0f8","activo":"0","_id":{"$wrap":"$oid","v":2}}

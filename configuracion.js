@@ -7,7 +7,7 @@ var datos = {
 
     pezarana: "pez araña",
     gmailCorreo: 'programacion211@gmail.com',
-    gmailPass: '211ProgZV',
+    gmailPass: '****',
 
     carpetaPublic: "./public_html",
     
