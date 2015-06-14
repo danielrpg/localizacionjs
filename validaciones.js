@@ -83,10 +83,7 @@ function validarFecha(valor) {
     return true;
 }
 
-function validarPosicion(dispositivo, fechaHora, latitud, longitud){
-    if (isNaN(dispositivo)) {
-        return false;
-    }    
+function validarPosicion(fechaHora, latitud, longitud){
     if (!validarFecha(fechaHora)) {
         return false;
     }

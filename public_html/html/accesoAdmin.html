@@ -87,6 +87,8 @@ logout.addEventListener("click", function(event) {
 
 var correo = '{Correo}';
 var id = '{Id}';
+console.log("id");
+console.log(id);
 
 
 function llamadaAjax(pagina) {
@@ -118,9 +120,14 @@ function eventos() {
     for (var i = 0; i < ArrayDesvincular.length; i++) {
         ArrayDesvincular[i].addEventListener("click", function(evt) {
             evt.preventDefault();
-            var id = evt.target.getAttribute("data-id");
+            var id = evt.target.getAttribute("data-nombre");
             if (id == undefined) {
-                id = evt.target.parentNode.getAttribute("data-id");
+                id = evt.target.parentNode.getAttribute("data-nombre");
+            };
+
+            var supervisor = evt.target.getAttribute("data-supervisor");
+            if (supervisor == undefined) {
+                supervisor = evt.target.parentNode.getAttribute("data-supervisor");
             };
             alertify.confirm("¿Quieres desvincular el dispositivo? <br/>Dejara de enviar su posici&oacute;n", function(e) {
                 if (e) {
@@ -130,7 +137,7 @@ function eventos() {
                         ajax = new XMLHttpRequest();
                     }
                     //ajax.open("GET", "http://localhost:8888/ajaxDesvincular?disp=" + id, true);
-                    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + id, true);
+                    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + id+"&sup="+supervisor, true);
                     ajax.onreadystatechange = function() {
                         if (ajax.readyState == 4 && ajax.status == 200) {
                             var pag = 0;
@@ -153,11 +160,22 @@ function eventos() {
     for (var i = 0; i < ArrayBorrar.length; i++) {
         ArrayBorrar[i].addEventListener("click", function(evt) {
             evt.preventDefault();
-            var id = evt.target.getAttribute("data-id");
+            /*
+            var id = evt.target.getAttribute("data-id");*/
             var nombre = evt.target.getAttribute("data-delete");
             if (id == undefined) {
                 id = evt.target.parentNode.getAttribute("data-id");
                 nombre = evt.target.parentNode.getAttribute("data-delete");
+            };
+
+            var id = evt.target.getAttribute("data-nombre");
+            if (id == undefined) {
+                id = evt.target.parentNode.getAttribute("data-nombre");
+            };
+
+            var supervisor = evt.target.getAttribute("data-supervisor");
+            if (supervisor == undefined) {
+                supervisor = evt.target.parentNode.getAttribute("data-supervisor");
             };
             alertify.prompt("Esta a punto de borrar el dispositivo <b>" + nombre + "</b> <br/>se eliminaran todos los datos del dispositivo <br/> Si quiere elminar el dispositivo introduce su nombre", function(e, str) {
                 if (e) {
@@ -167,7 +185,7 @@ function eventos() {
                             ajax = new XMLHttpRequest();
                         }
                         //ajax.open("GET", "http://localhost:8888/ajaxBorrar?disp=" + id, true);
-                        ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxBorrar?disp=" + id, true);
+                        ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxBorrar?disp=" + id+"&sup="+supervisor, true);
                         ajax.onreadystatechange = function() {
                             if (ajax.readyState == 4 && ajax.status == 200) {
                                 var ojsonBorrar = JSON.parse(ajax.responseText);
@@ -201,18 +219,25 @@ function eventos() {
     for (var i = 0; i < ArrayVer.length; i++) {
         ArrayVer[i].addEventListener("click", function(evt) {
             evt.preventDefault();
-            var id = evt.target.getAttribute("data-id");
+
+            var id = evt.target.getAttribute("data-nombre");
             if (id == undefined) {
-                id = evt.target.parentNode.getAttribute("data-id");
+                id = evt.target.parentNode.getAttribute("data-nombre");
             };
+
+            var supervisor = evt.target.getAttribute("data-supervisor");
+            if (supervisor == undefined) {
+                supervisor = evt.target.parentNode.getAttribute("data-supervisor");
+            };
+
             if (window.location.search != "") {
-                window.location = "ver" + window.location.search + "&disp=" + id;
+                window.location = "ver" + window.location.search + "&disp=" + id+"&sup="+supervisor;
             } else {
                 var direccion = document.getElementById("reload").getAttribute("data-reload");
                 direccion = direccion.replace("supervisor", "ver");
                 direccion = direccion.substring(0, direccion.length - 1);
                 direccion = direccion.replace("pagina", "disp");
-                direccion += id;
+                direccion += id+"&sup="+supervisor;
                 window.location = direccion;
             }
         });

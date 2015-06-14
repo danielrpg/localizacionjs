@@ -108,7 +108,7 @@ function visualizarSituacion(posicion) {
 
     //comprobar valores
     var valido = true;
-    if (isNaN(document.getElementById("idDispositivo").value)) {
+    if (document.getElementById("idDispositivo") == "") {
         valido = false;
     }
     if (isNaN(posicion.coords.latitude)) {
@@ -122,13 +122,16 @@ function visualizarSituacion(posicion) {
     }
 
     if (valido) {
+        console.log("envia posicion");
         var ajax;
         if (window.XMLHttpRequest) {
             ajax = new XMLHttpRequest();
         }
         ajax.open("GET",
             //"http://localhost:8888/ajaxSend?disp=" + document.getElementById("idDispositivo").value + "&lat=" + posicion.coords.latitude + "&long=" + posicion.coords.longitude + "&date=" + fechaHora,
-            "http://localizacionjs.herokuapp.com/ajaxSend?disp=" + document.getElementById("idDispositivo").value + "&lat=" + posicion.coords.latitude + "&long=" + posicion.coords.longitude + "&date=" + fechaHora,
+            "http://localizacionjs.herokuapp.com/ajaxSend?disp=" + document.getElementById("dispositivo").value + "&sup="
+            + document.getElementById("idSupervisor").value 
+            + "&lat=" + posicion.coords.latitude + "&long=" + posicion.coords.longitude + "&date=" + fechaHora,
             true);
         ajax.onreadystatechange = function() {
             if (ajax.readyState == 4) {
@@ -183,7 +186,8 @@ window.onbeforeunload = function exitAlert() {
         ajax = new XMLHttpRequest();
     }
     //ajax.open("GET", "http://localhost:8888/ajaxDesvincular?disp=" + id, true);
-    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + id, true);
+    ajax.open("GET", "http://localizacionjs.herokuapp.com/ajaxDesvincular?disp=" + document.getElementById("dispositivo").value + 
+        "&sup=" + document.getElementById("idSupervisor").value , true);
     ajax.send();
 }
 </script>

@@ -8,6 +8,10 @@ $(function(){
     var polyline;
     var smallMarket = L.divIcon({iconSize: new L.Point(20, 20), className: 'small-icon'});
     var arrayMarcadores = [];
+    /*
+    var arrayPosicion = [];
+    var arrayPosicionDia = [];
+    */
     var arrayLatLon = [];     
     var animatedMarker; 
     var fechaDia;
@@ -268,8 +272,8 @@ $(function(){
     /****************************************************/
 
 
-    //console.log(arrayPosicionDia );
-    //console.log(arrayPosicionDia[arrayPosicionDia.length - 1] );
+    console.log(arrayPosicionDia );
+    console.log(arrayPosicionDia[arrayPosicionDia.length - 1] );
     if (arrayPosicionDia != undefined && arrayPosicionDia[0] != undefined) {
         lat = parseFloat(arrayPosicionDia[0].latitud);
         //console.log(lat);
@@ -402,7 +406,7 @@ $(function(){
 	var socket = io.connect('http://localizacionjs.herokuapp.com/');
     //var socket = io.connect('http://localhost:8888/');
 
-    socket.on(id, function(data) {
+    socket.on(idDisp, function(data) {
 
         var objeto = {
             fechaHora: data.fechaHora,

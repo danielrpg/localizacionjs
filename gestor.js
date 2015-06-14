@@ -22,10 +22,8 @@ var io = require('socket.io').listen(configuracion.servidor);
 
 /***********************    Base Datos       ********************/
 
-var db = new Db(configuracion.datos.baseDatos, {});
-var supervisorTabla = db.collection(configuracion.datos.tablaSupervisor);
-var dispositivoTabla = db.collection(configuracion.datos.tablaDispositivo);
-var posicionTabla = db.collection(configuracion.datos.tablaPosicion);
+var mongo = require('mongodb').MongoClient;
+var uri = 'mongodb://usuario:clave@****.mongolab.com:port/baseDatos';
 
 /***********************    Correo       ********************/
 
@@ -100,13 +98,13 @@ function viewDispositivo(disp, sup, idDisp, idSup, tiempo, response) {
         .pipe(response);
 };
 
-function recuperar(email, valor, response) {
+function viewRecuperar(email, valor, response) {
     response.writeHead(200, {
         'Content-Type': 'text/html'
     });
     fs.createReadStream(configuracion.datos.carpetaPublic + "/html/recuperar.html")
-        .pipe(replaceStream('valorEmail', email))
-        .pipe(replaceStream('valorId', valor))
+        .pipe(replaceStream('{valorEmail}', email))
+        .pipe(replaceStream('{valorId}', valor))
         .pipe(response);
 }
 
@@ -117,8 +115,8 @@ function enviarCorreo(destino, opcion, enlace) {
         asunto = 'Activa la cuenta';
         contenido = 'Activa tu cuenta en este ';
     } else if (opcion == "reestablecer") {
-        asunto = 'Activa la cuenta';
-        contenido = 'Activa tu cuenta en este ';
+        asunto = 'Reestablece contraseña';
+        contenido = 'Reestablece contraseña en este ';
     }
 
     var mailOptions = {
@@ -191,15 +189,19 @@ function crearTabla(docs) {
             tabla += '<tr>';
             odd = true;
         }
-        //tabla += ' <td>' + docs[x]._id + '</td> <td>' + docs[x].nombre + '</td>';
         tabla += ' <td>' + docs[x].nombre + '</td>';
         if (docs[x].vinculado) {
-            tabla += '<td><a href="#" class="desvincular button-small button-warning pure-button" data-id="' + docs[x]._id + '"> <img src="../img/vincular.png" alt="vinculado" /> <span class="ordenador">Desvincular</span></a> </td>';
+            tabla += '<td><a href="#" class="desvincular button-small button-warning pure-button" data-id="' + docs[x]._id + 
+            '" data-nombre="' + docs[x].nombre +'" data-supervisor="' + docs[x].supervisor +'"> <img src="../img/vincular.png" alt="vinculado" /> <span class="ordenador">Desvincular</span></a> </td>';
         } else {
             tabla += '<td> <img src="../img/desvincular.png" alt="vinculado" /> </td>';
         }
-        tabla += '<td> <a href="#" class="borrar button-small button-error pure-button" data-id="' + docs[x]._id + '" data-delete="' + docs[x].nombre + '"><img src="../img/borrar.png" alt="borrar Dispositivo"/> <span class="ordenador">Borrar</span> </a> </td>';
-        tabla += '<td> <a href="#" class="ver button-small button-success pure-button" data-id="' + docs[x]._id + '" ><img src="../img/visible.png" alt="ver Dispositivo" /> <span class="ordenador">Ver</span></a> </td>';
+        tabla += '<td> <a href="#" class="borrar button-small button-error pure-button" data-id="' + docs[x]._id + 
+        '" data-nombre="' + docs[x].nombre +'" data-supervisor="' + docs[x].supervisor +
+        '" data-delete="' + docs[x].nombre + '"><img src="../img/borrar.png" alt="borrar Dispositivo"/> <span class="ordenador">Borrar</span> </a> </td>';
+        tabla += '<td> <a href="#" class="ver button-small button-success pure-button" data-id="' + docs[x]._id + 
+        '" data-nombre="' + docs[x].nombre +'" data-supervisor="' + docs[x].supervisor +
+        '" ><img src="../img/visible.png" alt="ver Dispositivo" /> <span class="ordenador">Ver</span></a> </td>';
         tabla += '</tr>'
     }
     if (tabla == "") {
@@ -210,39 +212,56 @@ function crearTabla(docs) {
 
 function ajaxRefrescar(request, response){
 
-    var idSup = parseInt(getParametros(request).sup);
+    var idSup = getParametros(request).sup;
     var correo = getParametros(request).correo;
     var pag = parseInt(getParametros(request).pag)
+    console.log(idSup);
+    console.log(correo);
+    console.log(pag);
+    console.log(!isNaN(pag));
+    console.log(validaciones.validarCorreo(correo));
     //validar datos
-    if (!isNaN(idSup) && !isNaN(pag) && validaciones.validarCorreo(correo) == "") {                
+    if ( idSup != "" && !isNaN(pag) && validaciones.validarCorreo(correo) == "") {                
         getHora(correo);                    
         var enlaces = "/supervisor?id=" + md5(configuracion.datos.pezarana + getHora(correo)) + "&email=" + correo;
-        dispositivoTabla.find({
-            supervisor: idSup
-        }).count(function (err, count) {
-            var paginasTotal = count;
-            var numeroEnlaces = Math.ceil(parseInt(paginasTotal) / parseInt(configuracion.datos.pasoPaginas));
-            if (pag > numeroEnlaces - 1) {
-                pag = numeroEnlaces - 1;
-            }
+        mongo.connect ( uri, function (err, db) {
+            if (err) {
+                console.log("error al conectar la base de datos");          
+                aviso("No se ha podido realizar", "", response);
+                return;
+            } 
 
-            dispositivoTabla.find({
+            var dispositivo = db.collection('dispositivo');
+
+            dispositivo.find({
                 supervisor: idSup
-            }).skip(pag * configuracion.datos.pasoPaginas).limit(configuracion.datos.pasoPaginas)
-            .toArray(function(err, docs) { 
-                var tabla = crearTabla(docs);
-                var enlacesPag = paginacion(pag, paginasTotal, configuracion.datos.pasoPaginas, enlaces);           
+            }).count(function (err, count) {            
+                console.log(count);
+                var paginasTotal = count;
+                var numeroEnlaces = Math.ceil(parseInt(paginasTotal) / parseInt(configuracion.datos.pasoPaginas));
+                if (pag > numeroEnlaces - 1) {
+                    pag = numeroEnlaces - 1;
+                }
 
-                response.writeHead(200, {
-                    'Content-Type': 'application/json'
+                //dispositivoTabla.find({
+                dispositivo.find({
+                    supervisor: idSup
+                }).skip(pag * configuracion.datos.pasoPaginas).limit(parseInt(configuracion.datos.pasoPaginas))
+                .toArray(function(err, docs) { 
+                    var tabla = crearTabla(docs);
+                    var enlacesPag = paginacion(pag, paginasTotal, configuracion.datos.pasoPaginas, enlaces);           
+
+                    response.writeHead(200, {
+                        'Content-Type': 'application/json'
+                    });
+                    var json = JSON.stringify({
+                        contenido: tabla,
+                        enlacesPag: enlacesPag
+                    });
+                    response.end(json);
                 });
-                var json = JSON.stringify({
-                    contenido: tabla,
-                    enlacesPag: enlacesPag
-                });
-                response.end(json);
             });
-        });
+        });        
     } else {
         response.writeHead(404, {
             'Content-Type': 'application/json'
@@ -290,28 +309,6 @@ function getHora(correo) {
 /*****************************      paginas      **************************/
 /**************************************************************************/
 function inicio(request, response) {
-    /*
-    supervisorTabla.find().toArray(function(err, docs) {
-        console.log("longitud: " + docs.length);
-        for (var x in docs) {
-            console.log(docs[x]);
-        }
-    });
-
-    dispositivoTabla.find().toArray(function(err, docs) {
-        console.log("longitud: " + docs.length);
-        for (var x in docs) {
-            console.log(docs[x]);
-        }
-    });
-
-    posicionTabla.find().toArray(function(err, docs) {
-        console.log("longitud: " + docs.length);
-        for (var x in docs) {
-            console.log(docs[x]);
-        }
-    });
-    */
     escribir("/index.html", response);
 }
 function error(request, response) {
@@ -340,25 +337,42 @@ function doRegistro(request, response, post) {
 
     var correoUsado = false;
     var supervisorNuevo = new objetos.Supervisor(querystring.parse(post).correo, sha1(querystring.parse(post).clave));
-    supervisorTabla.findOne({
-        correo: querystring.parse(post).correo
-    }, function(err, item) {
-        if (item !== null) {
-            escribir("/html/correoUsado.html", response);
-        } else {
-            supervisorTabla.insert({
-                correo: supervisorNuevo.correo,
-                clave: supervisorNuevo.clave,
-                activo: supervisorNuevo.activo
-            });
-            //var enlace = "<a href='http://localhost:8888/confirmar?id=" +
-            var enlace = "<a href='http://localizacionjs.herokuapp.com/confirmar?id=" +
-                md5(querystring.parse(post).correo + configuracion.datos.pezarana + sha1(querystring.parse(post).clave)) +
-                "&email=" + querystring.parse(post).correo + "'>enlace</a>";
-            enviarCorreo(querystring.parse(post).correo, "activar", enlace);
-            escribir("/html/envioEnlace.html", response);
-        }
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        console.log();
+        console.log("conectado");
+        console.log();
+        var supervisor = db.collection('supervisor');
+
+        supervisor.findOne({
+            correo: querystring.parse(post).correo
+        }, function(err, item) {
+
+            console.log();
+            console.log(item);
+            console.log();
+            if (item !== null) {
+                escribir("/html/correoUsado.html", response);
+            } else {
+                console.log();
+                console.log("insertar");
+                console.log(supervisorNuevo);
+
+                supervisor.insert(supervisorNuevo, function (err, inserted) {                })
+                
+                var enlace = "<a href='http://localizacionjs.herokuapp.com/confirmar?id=" +
+                    md5(querystring.parse(post).correo + configuracion.datos.pezarana + sha1(querystring.parse(post).clave)) +
+                    "&email=" + querystring.parse(post).correo + "'>enlace</a>";
+                enviarCorreo(querystring.parse(post).correo, "activar", enlace);
+                escribir("/html/envioEnlace.html", response);
+            }
+        });
     });
+    
 }
 
 function confirmar(request, response) {
@@ -368,46 +382,47 @@ function confirmar(request, response) {
     var clave = "";
     var activo = "";
 
-    //var supervisorActual;
-    exec(supervisorTabla.findOne({
-            correo: getParametros(request).email
-        }, function(err, item) {
-            if (item !== null) {
-                //            var supervisorActual = new objetos.Supervisor(item.correo, item.clave, item.activo);
-                correoExiste = true;
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        console.log();
+        console.log("Activar correo");
+        console.log();
 
-                correo = item.correo;
-                clave = item.clave;
-                activo = item.activo;
+        var supervisor = db.collection('supervisor');
+        exec(supervisor.findOne({
+                correo: getParametros(request).email
+            }, function(err, item) {
+                if (item !== null) {
+                    correo = item.correo;
+                    clave = item.clave;
+                    activo = item.activo;
 
-            }
-        }),
-        function(error, stdout, stderr) {
-            //if (supervisorActual !== null && supervisorActual !== undefined) {
-            if (correoExiste) {
-                if (activo == 0) {
-                    //if (supervisorActual.activo == 0) {
-                    escribir("/html/usuarioActivo.html", response);
-                    return;
-                }
-                if (getParametros(request).id == (md5(getParametros(request).email + configuracion.datos.pezarana + clave)) && activo == 1) {
-                    supervisorTabla.update({
-                        correo: correo
-                    }, {
-                        correo: correo,
-                        clave: clave,
-                        activo: '0'
-                    });
-                    //supervisorActual.activar();
-                    escribir("/html/usuarioActivo.html", response);
+                    if (activo == 0) {
+                        escribir("/html/usuarioActivo.html", response);
+                        return;
+                    }
+                    if (getParametros(request).id == (md5(getParametros(request).email + configuracion.datos.pezarana + clave)) && activo == 1) {
+                        supervisor.update({
+                            correo: correo
+                        }, {
+                            correo: correo,
+                            clave: clave,
+                            activo: '0'
+                        },function (err, inserted) { });
+                        escribir("/html/usuarioActivo.html", response);
+                    } else {
+                        console.log("error11111111111111111");
+                        escribir("/html/error.html", response);
+                    }
                 } else {
-                    console.log("error11111111111111111");
                     escribir("/html/error.html", response);
                 }
-            } else {
-                escribir("/html/error.html", response);
-            }
-        });
+        }));
+    });
 }
 
 function olvido(request, response) {
@@ -423,52 +438,66 @@ function doOlvido(request, response, post) {
     }
 
     var correoUsado = false;
-    var clave = "";
-    exec(supervisorTabla.findOne({
-        correo: querystring.parse(post).correo
-    }, function(err, item) {
-        if (item !== null) {
-            correoUsado = true;
-            clave = item.clave;
-        }
-    }), function(error, stdout, stderr) {
-        if (correoUsado) {
-            //var enlace = "<a href='http://localhost:8888/recuperar?id=" +
-            var enlace = "<a href='http://localizacionjs.herokuapp.com/recuperar?id=" +
-                md5(clave + configuracion.datos.pezarana + querystring.parse(post).correo) +
-                "&email=" + querystring.parse(post).correo + "'>enlace</a>";
-            enviarCorreo(querystring.parse(post).correo, "reestablecer", enlace);
-            escribir("/html/envioEnlace.html", response);
-        } else {
-            escribir("/html/emailNoReg.html", response);
-        }
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        exec(supervisor.findOne({
+            correo: querystring.parse(post).correo
+        }, function(err, item) {
+            if (item !== null) {                
+                console.log("--restaurar clave");
+                console.log(md5(configuracion.datos.pezarana + querystring.parse(post).correo));
+                //var enlace = "<a href='http://localhost:8888/recuperar?id=" +
+                var enlace = "<a href='http://localizacionjs.herokuapp.com/recuperar?id=" +
+                    md5(configuracion.datos.pezarana + querystring.parse(post).correo) +
+                    "&email=" + querystring.parse(post).correo + "'>enlace</a>";
+                enviarCorreo(querystring.parse(post).correo, "reestablecer", enlace);
+                escribir("/html/envioEnlace.html", response);
+            } else {
+                console.log("--email no usado");
+                escribir("/html/emailNoReg.html", response);
+            }
+        }));
     });
 }
 
 
 function recuperar(request, response) {
-    var correoExiste = false;
-    var clave = "";
-    exec(supervisorTabla.findOne({
-        correo: getParametros(request).email
-    }, function(err, item) {
-        if (item !== null) {
-            correoExiste = true;
-            clave = item.clave;
-        }
-    }), function(error, stdout, stderr) {
-        if (correoExiste) {
-            if (getParametros(request).id == (md5(clave + configuracion.datos.pezarana + getParametros(request).email))) {
-                recuperar(getParametros(request).email, getParametros(request).id);
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        exec(supervisor.findOne({
+            correo: getParametros(request).email
+        }, function(err, item) {
+            if (item !== null) {
+                console.log("recuperar clave1");
+                console.log(getParametros(request).id);
+                console.log(item.correo);
+                console.log(md5(configuracion.datos.pezarana + getParametros(request).email));
+                if ( getParametros(request).id == md5(configuracion.datos.pezarana + getParametros(request).email) ) {                    
+                    console.log("---coincide");
+                    console.log();
+                    viewRecuperar(getParametros(request).email, getParametros(request).id, response);
+                } else {
+                    console.log("---no coincide");
+                    console.log();
+                    escribir("/html/error.html", response);
+                }
             } else {
+                console.log("---no existe");
                 escribir("/html/error.html", response);
             }
-        } else {
-            escribir("/html/error.html", response);
-        }
+        }));
     });
 }
-
 
 function doRecuperar(request, response, post) {
     //validar datos
@@ -476,7 +505,7 @@ function doRecuperar(request, response, post) {
     var claveNueva = querystring.parse(post).clave;
     var claveNueva1 = querystring.parse(post).clave1;
 
-    var msg = validaciones.validarReestablecer(correo, clave, clave1);
+    var msg = validaciones.validarReestablecer(correo, claveNueva, claveNueva1);
     if (msg != "") {
         aviso(msg, "", response);
         return;
@@ -488,35 +517,39 @@ function doRecuperar(request, response, post) {
     console.log(querystring.parse(post).clave1);
 
     var correoExiste = false;
-    var clave = "";
     var activo = "";
-    exec(supervisorTabla.findOne({
-        correo: querystring.parse(post).email
-    }, function(err, item) {
-        if (item !== null) {
-            correoExiste = true;
-            clave = item.clave;
-            activo = item.activo;
-        }
-    }), function(error, stdout, stderr) {
-        if (correoExiste) {
-            if (querystring.parse(post).id == (md5(clave + configuracion.datos.pezarana + querystring.parse(post).email)) && activo == "0") {
-                console.log("modificar clave");
-                supervisorTabla.update({
-                    correo: correo
-                }, {
-                    correo: correo,
-                    clave: sha1(claveNueva),
-                    activo: '1'
-                });
-                aviso("Contraseña cambiada", "", response);
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        exec(supervisor.findOne({
+            correo: querystring.parse(post).email
+        }, function(err, item) {
+            if (item !== null) {
+                correoExiste = true;
+                activo = item.activo;
+                if (querystring.parse(post).id == (md5(configuracion.datos.pezarana + querystring.parse(post).email)) && 
+                        activo == "0") {
+                    console.log("modificar clave");
+                    supervisor.update({
+                        correo: correo
+                    }, {
+                        correo: correo,
+                        clave: sha1(claveNueva),
+                        activo: '1'
+                    }, function (err, inserted) { });
+                    aviso("Contraseña cambiada", "", response);
+                } else {
+                    escribir("/html/error.html", response);
+                    console.log("error comprobacion");
+                }
             } else {
                 escribir("/html/error.html", response);
-                console.log("error comprobacion");
             }
-        } else {
-            escribir("/html/error.html", response);
-        }
+        }));
     });
 }
 
@@ -532,43 +565,119 @@ function doAcceder(request, response, post) {
     var enlacesPag;
     var paginasTotal = 1;
 
-    //var correoExiste = false;
     var clave = "";
     var activo = "";
-    supervisorTabla.findOne({
-        correo: correo
-    }, function(err, item) {
-        if (item !== null) {
-            //correoExiste = true;
-            clave = item.clave;
-            activo = item.activo;
-            idSupervisor = item._id.id;
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        supervisor.findOne({
+            correo: correo
+        }, function(err, item) {
+            if (item !== null) {
+                clave = item.clave;
+                activo = item.activo;
+                idSupervisor = JSON.stringify(item._id);
+                idSupervisor = idSupervisor.substring(1,idSupervisor.length-1);
 
-            if (activo == "1") {
-                //reenviar correo
-                //var enlace = "<a href='http://localhost:8888/confirmar?id=" +
-                var enlace = "<a href='http://localizacionjs.herokuapp.com/confirmar?id=" +
-                    md5(querystring.parse(post).correo + configuracion.datos.pezarana + clave) +
-                    "&email=" + querystring.parse(post).correo + "'>enlace</a>";
-                enviarCorreo(querystring.parse(post).correo, "activar", enlace);
-                aviso("El usuario no esta activo. Se ha enviado un enlace a su correo para activarlo",
-                    '<script>  sessionStorage.removeItem("correo") </script>', response);
-                return;
+                if (activo == "1") {
+                    var enlace = "<a href='http://localizacionjs.herokuapp.com/confirmar?id=" +
+                        md5(querystring.parse(post).correo + configuracion.datos.pezarana + clave) +
+                        "&email=" + querystring.parse(post).correo + "'>enlace</a>";
+                    enviarCorreo(querystring.parse(post).correo, "activar", enlace);
+                    aviso("El usuario no esta activo. Se ha enviado un enlace a su correo para activarlo",
+                        '<script>  sessionStorage.removeItem("correo") </script>', response);
+                    return;
+                } else {
+                    if (sha1(clavePasada) == clave) {
+                        var paginaActual;
+                        if (querystring.parse(post).pagina == "" || querystring.parse(post).pagina === undefined) {
+                            paginaActual = 0;
+                        } else {
+                            paginaActual = parseInt(querystring.parse(post).pagina) - 1;
+                        }
+                        addHora(querystring.parse(post).correo);
+                        console.log(getHora(querystring.parse(post).correo));
+
+                        var enlaces = "/supervisor?id=" + md5(configuracion.datos.pezarana + getHora(querystring.parse(post).correo)) + "&email=" + correo;
+                        console.log("Supervisor-" + idSupervisor);
+
+                        var dispositivo = db.collection('dispositivo');
+                        dispositivo.find({
+                            supervisor: idSupervisor
+                        }).count(function (err, count) {
+                            var paginasTotal = count;
+                            var numeroEnlaces = Math.ceil(parseInt(paginasTotal) / parseInt(configuracion.datos.pasoPaginas));
+                            if (paginaActual > numeroEnlaces - 1) {
+                                paginaActual = numeroEnlaces - 1;
+                            }
+                            dispositivo.find({
+                                supervisor: idSupervisor
+                            }).skip(paginaActual * configuracion.datos.pasoPaginas).limit(parseInt(configuracion.datos.pasoPaginas))
+                            .toArray(function(err, docs) {
+                                var tabla = crearTabla(docs);
+                                enlacesPag = paginacion(paginaActual, paginasTotal, configuracion.datos.pasoPaginas, enlaces);
+                                avisoAdmin(tabla, enlacesPag, "Supervisor_" + idSupervisor, correo, idSupervisor,
+                                 'sessionStorage.setItem("id", "' + md5(configuracion.datos.pezarana + getHora(querystring.parse(post).correo)) + '")', response);    
+                            });
+                            
+                        });
+                    } else {
+                        aviso("Contraseña no valida", '<script>  sessionStorage.removeItem("correo") </script>', response);
+                    }
+                }
             } else {
-                if (sha1(clavePasada) == clave) {
+                aviso("Email no usado", '<script>  sessionStorage.removeItem("correo") </script>', response);
+            }
+        });
+    });
+}
+
+
+function supervisor(request, response) {
+    var clave = "";
+    var activo = "";
+    var idSupervisor = "";
+    var enlacesPag;
+    var paginasTotal = 1;
+
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        supervisor.findOne({
+            correo: getParametros(request).email
+        }, function(err, item) {
+            if (item !== null) {
+                //correoExiste = true;
+                clave = item.clave;
+                activo = item.activo;
+                idSupervisor = JSON.stringify(item._id);
+                idSupervisor = idSupervisor.substring(1,idSupervisor.length-1);
+
+                if (getParametros(request).id == (md5(configuracion.datos.pezarana + getHora(getParametros(request).email))) && activo == "0") {
                     var paginaActual;
-                    if (querystring.parse(post).pagina == "" || querystring.parse(post).pagina === undefined) {
+                    if (getParametros(request).pagina == "" || getParametros(request).pagina === undefined) {
                         paginaActual = 0;
                     } else {
-                        paginaActual = parseInt(querystring.parse(post).pagina) - 1;
+                        paginaActual = parseInt(getParametros(request).pagina); //- 1;
                     }
-                    addHora(querystring.parse(post).correo);
-                    console.log(getHora(querystring.parse(post).correo));
+                    /* Paginacion */
+                    var enlaces;
+                    if (request.url.lastIndexOf("&pagina") == -1) {
+                        enlaces = request.url;
+                    } else {
+                        enlaces = request.url.substring(0, request.url.lastIndexOf("&pagina"));
+                    }
 
-                    var enlaces = "/supervisor?id=" + md5(configuracion.datos.pezarana + getHora(querystring.parse(post).correo)) + "&email=" + correo;
-                    console.log("Supervisor-" + idSupervisor);
-
-                    dispositivoTabla.find({
+                    var dispositivo = db.collection('dispositivo');
+                    dispositivo.find({
                         supervisor: idSupervisor
                     }).count(function (err, count) {
                         var paginasTotal = count;
@@ -576,91 +685,32 @@ function doAcceder(request, response, post) {
                         if (paginaActual > numeroEnlaces - 1) {
                             paginaActual = numeroEnlaces - 1;
                         }
-            
-                        dispositivoTabla.find({
+                
+                        dispositivo.find({
                             supervisor: idSupervisor
-                        }).skip(paginaActual * configuracion.datos.pasoPaginas).limit(configuracion.datos.pasoPaginas)
-                        .toArray(function(err, docs) {
+                        }).skip(paginaActual * configuracion.datos.pasoPaginas).limit(parseInt(configuracion.datos.pasoPaginas))
+                        .toArray(function(err, docs) { 
+
                             var tabla = crearTabla(docs);
-                            enlacesPag = paginacion(paginaActual, paginasTotal, configuracion.datos.pasoPaginas, enlaces);
-                            avisoAdmin(tabla, enlacesPag, "Supervisor_" + idSupervisor, correo, idSupervisor,
-                             'sessionStorage.setItem("id", "' + md5(configuracion.datos.pezarana + getHora(querystring.parse(post).correo)) + '")', response);    
+                            enlacesPag = paginacion(paginaActual, paginasTotal, configuracion.datos.pasoPaginas, enlaces);    
+                            avisoAdmin(tabla, enlacesPag, "Supervisor_" + idSupervisor, getParametros(request).email, idSupervisor, '', response);    
                         });
                     });
                 } else {
-                    aviso("Contraseña no valida", '<script>  sessionStorage.removeItem("correo") </script>', response);
+
+                    aviso("Error al introducir contraseña", '<script>  sessionStorage.removeItem("correo") </script>', response);
                 }
-            }
-        } else {
-            aviso("Email no usado", '<script>  sessionStorage.removeItem("correo") </script>', response);
-        }
-    });
-}
-
-
-function supervisor(request, response) {
-    //var correoExiste = false;
-    var clave = "";
-    var activo = "";
-    var idSupervisor = "";
-    var enlacesPag;
-    var paginasTotal = 1;
-    supervisorTabla.findOne({
-        correo: getParametros(request).email
-    }, function(err, item) {
-        if (item !== null) {
-            //correoExiste = true;
-            clave = item.clave;
-            activo = item.activo;
-            idSupervisor = item._id.id;
-
-            if (getParametros(request).id == (md5(configuracion.datos.pezarana + getHora(getParametros(request).email))) && activo == "0") {
-                var paginaActual;
-                if (getParametros(request).pagina == "" || getParametros(request).pagina === undefined) {
-                    paginaActual = 0;
-                } else {
-                    paginaActual = parseInt(getParametros(request).pagina); //- 1;
-                }
-                /* Paginacion */
-                var enlaces;
-                if (request.url.lastIndexOf("&pagina") == -1) {
-                    enlaces = request.url;
-                } else {
-                    enlaces = request.url.substring(0, request.url.lastIndexOf("&pagina"));
-                }
-                dispositivoTabla.find({
-                    supervisor: idSupervisor
-                }).count(function (err, count) {
-                    var paginasTotal = count;
-                    var numeroEnlaces = Math.ceil(parseInt(paginasTotal) / parseInt(configuracion.datos.pasoPaginas));
-                    if (paginaActual > numeroEnlaces - 1) {
-                        paginaActual = numeroEnlaces - 1;
-                    }
-            
-                    dispositivoTabla.find({
-                        supervisor: idSupervisor
-                    }).skip(paginaActual * configuracion.datos.pasoPaginas).limit(configuracion.datos.pasoPaginas)
-                    .toArray(function(err, docs) { 
-
-                        var tabla = crearTabla(docs);
-                        enlacesPag = paginacion(paginaActual, paginasTotal, configuracion.datos.pasoPaginas, enlaces);    
-                        avisoAdmin(tabla, enlacesPag, "Supervisor_" + idSupervisor, getParametros(request).email, idSupervisor, '', response);    
-                    });
-                });
             } else {
-
-                aviso("Error al introducir contraseña", '<script>  sessionStorage.removeItem("correo") </script>', response);
+                escribir("/html/error.html", response);
             }
-        } else {
-            escribir("/html/error.html", response);
-        }
+        });
     });
 }
 
 function doIniciar(request, response, post, io) {
     //validar datos   
     var correo = querystring.parse(post).correo;
-    var dispositivo = querystring.parse(post).dispositivo;
+    var dispositivo_ = querystring.parse(post).dispositivo;
     var tiempo = querystring.parse(post).tiempo;
     var msg = validaciones.validarIniciar(correo, dispositivo, tiempo);
     if (msg != "") {
@@ -676,105 +726,103 @@ function doIniciar(request, response, post, io) {
     var vinculado = "";
     var idDisp = "";
 
-    supervisorTabla.findOne({
-        correo: correo
-    }, function(err, item) {
-        if (item !== null) {
-            clave = item.clave;
-            activo = item.activo;
-            idSupervisor = item._id.id;
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");            
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        var dispositivo = db.collection('dispositivo');
+        supervisor.findOne({
+            correo: correo
+        }, function(err, item) {
+            if (item !== null) {
+                clave = item.clave;
+                activo = item.activo;
 
-            if (activo == "1") {
-                //reenviar correo
-                //var enlace = "<a href='http://localhost:8888/confirmar?id=" +
-                var enlace = "<a href='http://localizacionjs.herokuapp.com:8888/confirmar?id=" +
-                    md5(querystring.parse(post).correo + configuracion.datos.pezarana + clave) +
-                    "&email=" + querystring.parse(post).correo + "'>enlace</a>";
-                enviarCorreo(querystring.parse(post).correo, "activar", enlace);
-                aviso("El usuario no esta activo. Se ha enviado un enlace a su correo para activarlo",
-                    '<script>  sessionStorage.removeItem("correo") </script>', response);
-                return;
-            } else {
-                console.log("ver si existe el dispositivo");
-                console.log("paso2");
-                dispositivoTabla.findOne({
-                    nombre: dispositivo,
-                    supervisor: idSupervisor
-                }, function(err, item) {
-                    console.log(item);
-                    if (item !== null) {
-                        dispositivoExiste = true;
-                        nombre = item.nombre;
-                        idDisp = item._id.id;
-                        console.log(idDisp);
-                        //var idSupervisor = item.supervisor;
-                        vinculado = item.vinculado;
+                idSupervisor = JSON.stringify(item._id);
+                idSupervisor = idSupervisor.substring(1,idSupervisor.length-1);
+                console.log(typeof idSupervisor);
+                console.log(idSupervisor);
 
-                        if (vinculado) {
-                            console.log(" ----------------> dispositivo en uso");
-                            //si aviso no se puede usar desconectar dispositivo o desde panel de admin
-                            aviso("Dispositivo en uso", "", response);
-                            return;
-                        } else {
-                            console.log(" ----------------> dispositivo enviando");
-                            dispositivoTabla.update({
-                                nombre: nombre,
-                                supervisor: idSupervisor
-                            }, {
-                                nombre: nombre,
-                                supervisor: idSupervisor,
-                                vinculado: true
-                            });
-                            var datos = {
-                                id: idSupervisor,
-                                correo: correo
-                            };
-                            //io.sockets.emit("Supervisor_" + idSupervisor, datos);//"refrescar-enviando");
-                            io.sockets.emit("Supervisor_" + idSupervisor, "refrescar-enviando");
-                            supervisorTabla.findOne({                                
-                                _id: idSupervisor
-                            }, function(err, item) {
-                                viewDispositivo(nombre, item.correo, idDisp, idSupervisor, tiempo, response);
-                            });
-                        }
-                    } else {
-                        console.log(" ----------------> dispositivo no existe");
-                        dispositivoTabla.insert({
-                            nombre: querystring.parse(post).dispositivo,
-                            supervisor: idSupervisor,
-                            vinculado: true
-                        });                        
-                        var datos = {
-                            id: idSupervisor,
-                            correo: correo
-                        };
-                        //io.sockets.emit("Supervisor_" + idSupervisor, datos);//"refrescar-creado");
-                        io.sockets.emit("Supervisor_" + idSupervisor, "refrescar-creado");
-
-                        dispositivoTabla.findOne({
-                            nombre: dispositivo,
-                            supervisor: idSupervisor
-                        }, function(err, item) {
+                if (activo == "1") {
+                    //reenviar correo
+                    //var enlace = "<a href='http://localhost:8888/confirmar?id=" +
+                    var enlace = "<a href='http://localizacionjs.herokuapp.com:8888/confirmar?id=" +
+                        md5(querystring.parse(post).correo + configuracion.datos.pezarana + clave) +
+                        "&email=" + querystring.parse(post).correo + "'>enlace</a>";
+                    enviarCorreo(querystring.parse(post).correo, "activar", enlace);
+                    aviso("El usuario no esta activo. Se ha enviado un enlace a su correo para activarlo",
+                        '<script>  sessionStorage.removeItem("correo") </script>', response);
+                    return;
+                } else {
+                    console.log("ver si existe el dispositivo");
+                    console.log("paso2");            
+                    console.log(dispositivo_);
+                    console.log(idSupervisor);
+                    dispositivo.findOne({
+                        nombre: dispositivo_,
+                        supervisor: idSupervisor
+                    }, function(err, item) {
+                        console.log(item);
+                        if (item !== null) {
+                            dispositivoExiste = true;
                             nombre = item.nombre;
-                            console.log(item);
-                            if (item !== null) {
-                                idDisp = item._id.id;
-                                console.log(idDisp);
-                                supervisorTabla.findOne({                                
+                            idDisp = item._id;
+                            console.log(idDisp);
+                            vinculado = item.vinculado;
+
+                            if (vinculado) {
+                                console.log(" ----------------> dispositivo en uso");
+                                //si aviso no se puede usar desconectar dispositivo o desde panel de admin
+                                aviso("Dispositivo en uso", "", response);
+                                return;
+                            } else {
+                                console.log(" ----------------> dispositivo enviando");
+                                dispositivo.update({
+                                    nombre: nombre,
+                                    supervisor: idSupervisor
+                                }, {
+                                    nombre: nombre,
+                                    supervisor: idSupervisor,
+                                    vinculado: true
+                                }, function (err, inserted) { });
+                                io.sockets.emit("Supervisor_" + idSupervisor, "refrescar-enviando");                         
+                                supervisor.findOne({                                
                                     _id: idSupervisor
                                 }, function(err, item) {
-                                    viewDispositivo(nombre, item.correo, idDisp, idSupervisor, tiempo, response);
+                                    viewDispositivo(nombre, correo, idDisp, idSupervisor, tiempo, response);
                                 });
-                               // viewDispositivo(dispositivo, idDisp, idSupervisor, tiempo, response);
                             }
-                        });
-                    }
-                });
+                        } else {
+                            console.log(" ----------------> dispositivo no existe");
+                            console.log("idSupervisor al crear dispositivo");
+                            console.log(typeof idSupervisor);
+                            console.log(JSON.stringify(idSupervisor));
+                            var stringIdSup = JSON.stringify(idSupervisor);
+                            stringIdSup = stringIdSup.substring(1,stringIdSup.length-1);
+                            console.log(stringIdSup);
+                            dispositivo.insert({
+                                nombre: querystring.parse(post).dispositivo,
+                                supervisor: stringIdSup,
+                                vinculado: true
+                            }, function(err, result) {   
+                                io.sockets.emit("Supervisor_" + idSupervisor, "refrescar-creado");                                
+                                supervisor.findOne({                                
+                                    _id: idSupervisor
+                                }, function(err, item) {
+                                    viewDispositivo(querystring.parse(post).dispositivo, correo, idDisp, idSupervisor, tiempo, response);
+                                });
+                            }); 
+                        }
+                    });
+                }
+            } else {
+                aviso("Email no esta en uso", /*, intento de inicio en dispositivo", */
+                    '<script>  sessionStorage.removeItem("correo") </script>', response);
             }
-        } else {
-            aviso("Email no esta en uso", /*, intento de inicio en dispositivo", */
-                '<script>  sessionStorage.removeItem("correo") </script>', response);
-        }
+        });
     });
 }
 
@@ -782,133 +830,200 @@ function doIniciar(request, response, post, io) {
 function fin(request, response, post, io) {
     var disp = querystring.parse(post).dispositivo;
     var idSup = querystring.parse(post).idSupervisor;
-    dispositivoTabla.update({
-        nombre: disp,
-        supervisor: parseInt(idSup)
-    }, {
-        nombre: disp,
-        supervisor: parseInt(idSup),
-        vinculado: false
-    }, function(err, result) {
-        supervisorTabla.findOne({                                
-            _id: idSup
-        }, function(err, item) {                            
-            var datos = {
-                id: idSup,
-                correo: item.correo
-            };
-            //io.sockets.emit("Supervisor_" + idSup, datos);//"refrescar-desvinculado");
-            io.sockets.emit("Supervisor_" + idSup, "refrescar-desvinculado");
-            escribir("/index.html", response);
+    console.log();
+    console.log("Fin");
+    console.log();
+    console.log(disp);
+    console.log(idSup);
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");            
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var dispositivo = db.collection('dispositivo');
+        dispositivo.findOne({
+            nombre: disp,
+            supervisor: idSup
+        }, function(err, item) {
+            console.log();
+            console.log("error");
+            console.log(err);
+            console.log();
+
+            console.log();
+            console.log("item ha desvincular");
+            console.log(querystring.parse(post).idDispositivo);
+            console.log(item);
+            console.log();
         });
+
+        dispositivo.update({
+            nombre: disp,
+            supervisor: idSup
+        }, {
+            nombre: disp,
+            supervisor: idSup,
+            "vinculado": false
+        }, function(err, inserted) {
+            console.log();
+            console.log("error");
+            console.log(err);
+            console.log();
+
+            console.log();
+            console.log("bien");
+            console.log(inserted);
+            console.log();
+        });
+           io.sockets.emit("Supervisor_" + idSup, "refrescar-desvinculado");
+            escribir("/index.html", response);
     });
 }
 
 function ver(request, response) {
     var nombre = "";
     var contenido = "[";
-    var correoExiste = false;
     var clave = "";
     var activo = "";
     var idSupervisor = "";
-    exec(supervisorTabla.findOne({
-        correo: getParametros(request).email
-    }, function(err, item) {
-        if (item !== null) {
-            correoExiste = true;
-            clave = item.clave;
-            activo = item.activo;
-            idSupervisor = item._id.id;
-        }
-    }), function(error, stdout, stderr) {
-        if (correoExiste) {
-            if (getParametros(request).id == (md5(configuracion.datos.pezarana + getHora(getParametros(request).email))) && activo == "0") {
-                dispositivoTabla.findOne({
-                    _id: getParametros(request).disp
-                }, function(err, item) {
-                    if (item !== null) {
-                        nombre += item.nombre;
-                    }
-                    //buscar posiciones
-                    posicionTabla.find({
-                        dispositivo: getParametros(request).disp
-                    }).toArray(function(err, docs) {
-                        //console.log("longitud: " + docs.length);
-                        for (var x in docs) {
-                            console.log(docs[x]);
-                            contenido += "{fechaHora: '" + docs[x].fechaHora + "'";
-                            contenido += ", latitud: " + docs[x].latitud + "";
-                            contenido += ", longitud: " + docs[x].longitud + "";
-                            contenido += "},"
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        var dispositivo = db.collection('dispositivo');
+        var posicion = db.collection('posicion');
+        exec(supervisor.findOne({
+            correo: getParametros(request).email
+        }, function(err, item) {
+            if (item !== null) {
+                clave = item.clave;
+                activo = item.activo;
+                idSupervisor = JSON.stringify(item._id);
+                idSupervisor = idSupervisor.substring(1,idSupervisor.length-1);
+
+                if (getParametros(request).id == (md5(configuracion.datos.pezarana + getHora(getParametros(request).email))) && 
+                    activo == "0") {
+                    var disp = getParametros(request).disp;
+                    var idSup = getParametros(request).sup;
+                    dispositivo.findOne({
+                        //_id: getParametros(request).disp                        
+                        nombre: disp,
+                        supervisor: idSup
+                    }, function(err, item) {
+                        if (item !== null) {
+                            nombre += item.nombre;
                         }
-                        if (contenido != "[") {
-                            contenido = contenido.substring(0, contenido.length - 1);
-                        }
-                        contenido += "]";
-                        console.log(contenido);
-                        adminVer(nombre, contenido, getParametros(request).disp, response);
+                        var dispItem = JSON.stringify(item._id);
+                        dispItem = dispItem.substring(1,dispItem.length-1);
+                        //buscar posiciones
+                        console.log();
+                        console.log("ver");
+                        console.log(getParametros(request).disp);
+                        console.log(dispItem);
+                        console.log();
+                        posicion.find({
+                            dispositivo: dispItem
+                        }).toArray(function(err, docs) {
+                            console.log(docs);
+                            for (var x in docs) {
+                                console.log(docs[x]);
+                                contenido += "{fechaHora: '" + docs[x].fechaHora + "'";
+                                contenido += ", latitud: " + docs[x].latitud + "";
+                                contenido += ", longitud: " + docs[x].longitud + "";
+                                contenido += "},"
+                            }
+                            if (contenido != "[") {
+                                contenido = contenido.substring(0, contenido.length - 1);
+                            }
+                            contenido += "]";
+                            console.log(contenido);
+                            adminVer(nombre, contenido, item.nombre, response);
+                        });
                     });
-                });
+                } else {
+                    escribir("/html/error.html", response);
+                }
             } else {
                 escribir("/html/error.html", response);
             }
-        } else {
-            escribir("/html/error.html", response);
-        }
+        }));
     });
 }
 
 function ajaxSend(request, response, post, io) {
     //validar datos
-    var msg = validaciones.validarPosicion(getParametros(request).disp,
-        getParametros(request).date, getParametros(request).lat, getParametros(request).long);
+    var disp = getParametros(request).disp;
+    var idSup = getParametros(request).sup;
+
+    var msg = validaciones.validarPosicion(getParametros(request).date, 
+        getParametros(request).lat, getParametros(request).long);
     if (msg) {
-        dispositivoTabla.findOne({
-            _id: getParametros(request).disp
-        }, function(err, item) {
-            console.log(item);
-            if (item !== null) {
-                if (item.vinculado) {
-                    posicionTabla.insert({
-                        dispositivo: getParametros(request).disp,
-                        fechaHora: getParametros(request).date,
-                        latitud: getParametros(request).lat,
-                        longitud: getParametros(request).long
-                    });
+        mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var supervisor = db.collection('supervisor');
+        var dispositivo = db.collection('dispositivo');
+        var posicion = db.collection('posicion');
+            dispositivo.findOne({
+                nombre: disp,
+                supervisor: idSup
+            }, function(err, item) {
+                console.log(item);
+                if (item !== null) {
+                    if (item.vinculado) {
+                        var stringIdDisp = JSON.stringify(item._id);
+                        stringIdDisp = stringIdDisp.substring(1,stringIdDisp.length-1);
 
-                    var datos = {
-                        fechaHora: getParametros(request).date,
-                        latitud: getParametros(request).lat,
-                        longitud: getParametros(request).long
-                    };
-                    io.sockets.emit(getParametros(request).disp, datos);
+                        posicion.insert({
+                            dispositivo: stringIdDisp,
+                            fechaHora: getParametros(request).date,
+                            latitud: getParametros(request).lat,
+                            longitud: getParametros(request).long
+                        }, function (err, inserted) { });
 
-                    response.writeHead(200, {
-                        'Content-Type': 'application/json'
-                    });
-                    var json = JSON.stringify({
-                        r: 0
-                    });
-                    response.end(json);
+
+
+                        var datos = {
+                            fechaHora: getParametros(request).date,
+                            latitud: getParametros(request).lat,
+                            longitud: getParametros(request).long
+                        };
+                        io.sockets.emit(getParametros(request).disp, datos);
+
+                        response.writeHead(200, {
+                            'Content-Type': 'application/json'
+                        });
+                        var json = JSON.stringify({
+                            r: 0
+                        });
+                        response.end(json);
+                    } else {
+                        response.writeHead(200, {
+                            'Content-Type': 'application/json'
+                        });
+                        var json = JSON.stringify({
+                            r: 1
+                        });
+                        response.end(json);
+                    }
                 } else {
                     response.writeHead(200, {
                         'Content-Type': 'application/json'
                     });
+
                     var json = JSON.stringify({
-                        r: 1
+                        r: 2
                     });
                     response.end(json);
                 }
-            } else {
-                response.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-
-                var json = JSON.stringify({
-                    r: 2
-                });
-                response.end(json);
-            }
+            });
         });
     } else {
         response.writeHead(404, {
@@ -921,49 +1036,118 @@ function ajaxSend(request, response, post, io) {
     }
 }
 
-function ajaxDesvincular(request, response) {
-    //validar datos
-    if (!isNaN(getParametros(request).disp)) {
-        dispositivoTabla.findOne({
-            _id: getParametros(request).disp
+function fin(request, response, post, io) {
+    var disp = querystring.parse(post).dispositivo;
+    var idSup = querystring.parse(post).idSupervisor;
+    console.log();
+    console.log("Fin");
+    console.log();
+    console.log(disp);
+    console.log(idSup);
+    mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");            
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var dispositivo = db.collection('dispositivo');
+        dispositivo.findOne({
+            nombre: disp,
+            supervisor: idSup
         }, function(err, item) {
+            console.log();
+            console.log("error");
+            console.log(err);
+            console.log();
+
+            console.log();
+            console.log("item ha desvincular");
+            console.log(querystring.parse(post).idDispositivo);
             console.log(item);
-            if (item !== null) {
-                if (item.vinculado) {
-                    console.log(item);
-                    dispositivoTabla.update({
-                        nombre: item.nombre,
-                        supervisor: item.supervisor
-                    }, {
-                        nombre: item.nombre,
-                        supervisor: item.supervisor,
-                        vinculado: false
-                    });
-                    response.writeHead(200, {
-                        'Content-Type': 'application/json'
-                    });
-                    var json = JSON.stringify({
-                        r: 0
-                    });
-                    response.end(json);
+            console.log();
+        });
+
+        dispositivo.update({
+            nombre: disp,
+            supervisor: idSup
+        }, {
+            nombre: disp,
+            supervisor: idSup,
+            "vinculado": false
+        }, function(err, inserted) {
+            console.log();
+            console.log("error");
+            console.log(err);
+            console.log();
+
+            console.log();
+            console.log("bien");
+            console.log(inserted);
+            console.log();
+        });
+           io.sockets.emit("Supervisor_" + idSup, "refrescar-desvinculado");
+            escribir("/index.html", response);
+    });
+}
+
+function ajaxDesvincular(request, response) {
+
+    var disp = getParametros(request).disp;
+    var idSup = getParametros(request).sup;
+
+    //validar datos
+    if ( disp != null && disp != "" && idSup != null && idSup != "" ) {
+        mongo.connect ( uri, function (err, db) {
+            if (err) {
+                console.log("error al conectar la base de datos");          
+                aviso("No se ha podido realizar", "", response);
+                return;
+            } 
+            var dispositivo = db.collection('dispositivo');
+            dispositivo.find().toArray(function(err, docs) {
+                console.log(docs);
+            });
+            dispositivo.findOne({
+                nombre: disp,
+                supervisor: idSup
+            }, function(err, item) {
+                if (item !== null) {
+                    if (item.vinculado) {
+                        console.log(item);
+                        dispositivo.update({
+                            nombre: item.nombre,
+                            supervisor: item.supervisor
+                        }, {
+                            nombre: item.nombre,
+                            supervisor: item.supervisor,
+                            vinculado: false
+                        }, function (err, inserted) { });
+                        response.writeHead(200, {
+                            'Content-Type': 'application/json'
+                        });
+                        var json = JSON.stringify({
+                            r: 0
+                        });
+                        response.end(json);
+                    } else {
+                        response.writeHead(200, {
+                            'Content-Type': 'application/json'
+                        });
+                        var json = JSON.stringify({
+                            r: 1
+                        });
+                        response.end(json);
+                    }
                 } else {
                     response.writeHead(200, {
                         'Content-Type': 'application/json'
                     });
                     var json = JSON.stringify({
-                        r: 1
+                        r: 2
                     });
                     response.end(json);
                 }
-            } else {
-                response.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-                var json = JSON.stringify({
-                    r: 2
-                });
-                response.end(json);
-            }
+            });
         });
     } else {
         response.writeHead(404, {
@@ -978,37 +1162,50 @@ function ajaxDesvincular(request, response) {
 
 function ajaxBorrar(request, response) {
     //validar datos
-    if (!isNaN(getParametros(request).disp)) {
-        dispositivoTabla.findOne({
-            _id: getParametros(request).disp
-        }, function(err, item) {
-            console.log(item);
-            if (item !== null) {
+    var disp = getParametros(request).disp;
+    var idSup = getParametros(request).sup;
+    if ( disp != null && disp != "" && idSup != null && idSup != "" ) {
+        mongo.connect ( uri, function (err, db) {
+        if (err) {
+            console.log("error al conectar la base de datos");          
+            aviso("No se ha podido realizar", "", response);
+            return;
+        } 
+        var dispositivo = db.collection('dispositivo');
+        var posicion = db.collection('posicion');
+            dispositivo.findOne({                
+                nombre: disp,
+                supervisor: idSup
+            }, function(err, item) {
                 console.log(item);
-                //borrar todas sus posiciones
-                posicionTabla.insert({
-                    dispositivo: getParametros(request).disp
-                });
-                // borrar el dispositivo
-                dispositivoTabla.remove({
-                    _id: getParametros(request).disp
-                });
-                response.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-                var json = JSON.stringify({
-                    r: 0
-                });
-                response.end(json);
-            } else {
-                response.writeHead(200, {
-                    'Content-Type': 'application/json'
-                });
-                var json = JSON.stringify({
-                    r: 2
-                });
-                response.end(json);
-            }
+                if (item !== null) {
+                    console.log(item);
+                    //borrar todas sus posiciones
+                    posicion.remove({
+                        dispositivo: item._id
+                    }, function (err, inserted) { });
+                    // borrar el dispositivo
+                    dispositivo.remove({            
+                        nombre: disp,
+                        supervisor: idSup
+                    }, function (err, inserted) { });
+                    response.writeHead(200, {
+                        'Content-Type': 'application/json'
+                    });
+                    var json = JSON.stringify({
+                        r: 0
+                    });
+                    response.end(json);
+                } else {
+                    response.writeHead(200, {
+                        'Content-Type': 'application/json'
+                    });
+                    var json = JSON.stringify({
+                        r: 2
+                    });
+                    response.end(json);
+                }
+            });
         });
     } else {
         response.writeHead(404, {

@@ -8,10 +8,11 @@ function Supervisor(correo, clave, activo) {
         activo = 1;
     }
     this.activo = activo;
-    
+    /*
     this.activar = function(){        
         this.activo = 0;
     }
+    */
 }
 
 function Dispositivo(nombre, supervisor, vinculado) {
