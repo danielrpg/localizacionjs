@@ -122,8 +122,11 @@ a.pure-button-primary {
     border-radius: 5px;
     font-size: 120%;
 }
-
-
+@media only screen and (max-width: 400px){
+	#paginacion .pure-button {
+    	padding: 0.5em 1.65em;
+	}
+}
 /*
  * -- MENU STYLES --
  * I want to customize how my .pure-menu looks at the top of the page
@@ -831,6 +834,27 @@ a .content.error div{
 	width: 185px;
 }
 
+@media only screen and (max-width:600px){
+
+	.styled-select.anyo{
+		width: 85px;
+	}
+
+	.styled-select.mes,
+	.styled-select.dia {
+		width: 65px;
+	}
+	.styled-select select#anyo{
+    	width: 75px;
+    	padding: 5px 5px 5px 0px;
+	}
+	.styled-select select#mes,
+	.styled-select select#dia{
+    	width: 50px;
+    	padding: 5px 5px 5px 0px;
+	}
+}
+
 .small-icon{
 	background-image: url(../img/marker-icon__.png);
 	background-repeat: no-repeat;
@@ -843,5 +867,21 @@ a .content.error div{
 }
 
 #fechas{
-	display: inline-block;
+	display: inline-block;	
+    width: 100%;
+}
+
+@media only screen and (max-width: 400px){
+
+	.styled-select.anyo{
+		width: 80px;
+	}
+
+	.styled-select.mes,
+	.styled-select.dia {
+		width: 60px;
+	}
+	#fechas {
+    	width: 105%;
+	}
 }

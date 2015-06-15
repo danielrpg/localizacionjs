@@ -23,7 +23,7 @@ var io = require('socket.io').listen(configuracion.servidor);
 /***********************    Base Datos       ********************/
 
 var mongo = require('mongodb').MongoClient;
-var uri = 'mongodb://usuario:clave@****.mongolab.com:port/baseDatos';
+var uri = 'mongodb://usuario:clave@ds033170.mongolab.com:33170/localizacionjs';
 
 /***********************    Correo       ********************/
 

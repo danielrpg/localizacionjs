@@ -16,9 +16,36 @@ $(function(){
     var animatedMarker; 
     var fechaDia;
 
+    var distanciaTotal = 0;
+
     /****************************************************/
     /******************    Funciones    *****************/
     /****************************************************/
+
+    function redondeo(numero, decimales) {
+        var flotante = parseFloat(numero);
+        var resultado = Math.round(flotante * Math.pow(10, decimales)) / Math.pow(10, decimales);
+        return resultado;
+    }
+
+
+    function gradosARadianes(grados) {
+        var radianes = (grados * Math.PI) / 180;
+        return radianes;
+    }
+
+
+    function calcularDistancia(origen_Lat, origen_Lon, destino_Lat, destino_Lon) {
+        var radianesLatInicio = gradosARadianes(origen_Lat);
+        var radianesLongInicio = gradosARadianes(origen_Lon);
+        var radianesLatDestino = gradosARadianes(destino_Lat);
+        var radianesLongDestino = gradosARadianes(destino_Lon);
+        var Radio = 6371; // radio de la Tierra en Km
+        var resultado = Math.acos(Math.sin(radianesLatInicio) * Math.sin(radianesLatDestino) +
+            Math.cos(radianesLatInicio) * Math.cos(radianesLatDestino) *
+            Math.cos(radianesLongInicio - radianesLongDestino)) * Radio;
+        return redondeo(resultado, 3);
+    }
     
     function existeAnyo(anyo) {    
         for (var i = 0; i < fechasValidas.length; i++) {    
@@ -164,11 +191,14 @@ $(function(){
         map.zoomControl.removeFrom(map);
         
         $( "#ver" ).addClass("pure-button-disabled");
-
+console.log("distancia total");
+console.log(distanciaTotal);
+console.log();
         animatedMarker = L.animatedMarker(poly.getLatLngs(), {
-            distance: 300,  // meters
-            //interval: 5000, // milliseconds
-            interval: 1000, // milliseconds
+            //distance: 300,  // meters
+            distance: distanciaTotal*1000,  // meters
+            interval: 3000, // milliseconds
+            //interval: 1000, // milliseconds
             autoStart: false,
             onEnd: function(){
                 map.scrollWheelZoom.enable();
@@ -223,6 +253,10 @@ $(function(){
         for (var i = 0; i < arrayPosicion.length; i++) {
             if(arrayPosicion[i].fechaHora.substring(0,10) == fechaDia){
                 arrayPosicionDia.push(arrayPosicion[i]);
+                //calcular distancia
+                if (i < arrayPosicion.length-1) {
+                   distanciaTotal += calcularDistancia(arrayPosicion[i].latitud, arrayPosicion[i].longitud, arrayPosicion[i+1].latitud, arrayPosicion[i+1].longitud);
+                }
             }
         }
 
@@ -353,10 +387,14 @@ $(function(){
                 console.log(fechaDiaNew);
                 arrayPosicionDia = [];     
                 fechaDia = fechaDiaNew;
+                distanciaTotal = 0;
 
                 for(var i = 0; i < arrayPosicion.length; i++){
                     if(arrayPosicion[i].fechaHora.substring(0,10) == fechaDia){
                         arrayPosicionDia.push(arrayPosicion[i]);
+                        if (i < arrayPosicion.length-1) {
+                            distanciaTotal += calcularDistancia(arrayPosicion[i].latitud, arrayPosicion[i].longitud, arrayPosicion[i+1].latitud, arrayPosicion[i+1].longitud);
+                        }
                     }
                 }
 
