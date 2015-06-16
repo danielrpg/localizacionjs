@@ -230,7 +230,7 @@ console.log();
 
 
 	arrayPosicion.sort(function (a, b) {
-        return (a.fechaHora - b.fechaHora);
+		return (a.fechaHora > b.fechaHora) ? 1:-1;
     });
 
     var fechasValidas = [];
